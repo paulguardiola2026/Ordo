@@ -20,6 +20,7 @@ import com.example.capstone2026.ui.components.AppMenu
 import com.example.capstone2026.util.cleanedEventTitle
 import com.example.capstone2026.util.formatEventDate
 import com.example.capstone2026.util.toLocalDate
+import com.google.firebase.auth.FirebaseAuth
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -36,6 +37,7 @@ fun HomeScreen(
     onNavigateToMonthly: () -> Unit,
     navController: NavController
 ) {
+    val user = FirebaseAuth.getInstance().currentUser
     val today = LocalDate.now()
     val formattedDate = today.format(
         DateTimeFormatter.ofPattern("EEEE, MMMM d")
@@ -62,8 +64,9 @@ fun HomeScreen(
                 modifier = Modifier
                 .height(80.dp)
             )
-
-            // Date
+            Text(
+                text = "Welcome, ${user?.displayName ?: "Student"}"
+            )
             Text(
                 text = formattedDate,
                 style = MaterialTheme.typography.bodyLarge

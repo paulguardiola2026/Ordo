@@ -20,6 +20,7 @@ import com.example.capstone2026.util.ensureWritableIcs
 import com.example.capstone2026.util.parseIcsFile
 import com.example.capstone2026.util.saveEventsToIcs
 import com.example.capstone2026.ui.screens.toCalendarEvent
+import com.google.firebase.auth.FirebaseAuth
 
 /**
  * Defines all navigation routes for the app and manages shared UI state.
@@ -33,6 +34,8 @@ fun AppNavGraph(
 ) {
     val navController = rememberNavController()
     val context = LocalContext.current
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val startDestination = if (currentUser != null) "home" else "login"
 
     val initialEvents: List<CalendarEvent> by remember {
         mutableStateOf(
@@ -56,15 +59,14 @@ fun AppNavGraph(
 
     NavHost(
         navController = navController,
-        startDestination = "login",
+        startDestination = startDestination,
         modifier = modifier
     ) {
         composable("login") {
             LoginScreen(
-                onLoginSuccess = {
+                onGoogleSignInClick = {
                     navController.navigate("home") {
-                        popUpTo("login") { inclusive = true }
-                        launchSingleTop = true
+                        popUpTo("login") {inclusive = true}
                     }
                 }
             )

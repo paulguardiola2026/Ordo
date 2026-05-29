@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.capstone2026.ui.components.AppMenu
 import com.example.capstone2026.ui.theme.ThemeMode
+import com.google.firebase.auth.FirebaseAuth
 
 /**
  * Allows user to change theme settings and sign out.
@@ -77,11 +78,12 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
-                onClick = onSignOut,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError
-                )
+                onClick = {
+                    FirebaseAuth.getInstance().signOut()
+                    navController.navigate("login") {
+                        popUpTo(0)
+                    }
+                }
             ) {
                 Text("Sign Out")
             }

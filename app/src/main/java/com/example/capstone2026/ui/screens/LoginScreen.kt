@@ -5,11 +5,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import android.util.Log
+import androidx.compose.ui.platform.LocalContext
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import kotlinx.coroutines.launch
+import com.example.capstone2026.R
 
 /**
  * Simple login screen with basic credential validation.
@@ -17,13 +23,11 @@ import androidx.compose.ui.unit.dp
  */
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit
+    onGoogleSignInClick: () -> Unit
 ) {
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var errorMessage by remember { mutableStateOf("") }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -41,74 +45,67 @@ fun LoginScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Login",
+                    text = "Welcome to Ordo",
                     style = MaterialTheme.typography.headlineMedium
                 )
 
-                OutlinedTextField(
-                    value = username,
-                    onValueChange = {
-                        username = it
-                        errorMessage = ""
-                    },
-                    label = { Text("Username") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                Text(
+                    text = "Sign in to manage your academic schedule.",
+                    style = MaterialTheme.typography.bodyMedium
                 )
-
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = {
-                        password = it
-                        errorMessage = ""
-                    },
-                    label = { Text("Password") },
-                    visualTransformation = if (passwordVisible) {
-                        VisualTransformation.None
-                    } else {
-                        PasswordVisualTransformation()
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        autoCorrectEnabled = false,
-                        keyboardType = KeyboardType.Password
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Checkbox(
-                        checked = passwordVisible,
-                        onCheckedChange = { passwordVisible = it }
-                    )
-                    Text("Show password")
-                }
-
                 if (errorMessage.isNotBlank()) {
                     Text(
                         text = errorMessage,
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
-
                 Button(
                     onClick = {
+                        scope.launch {
+                            try {
+                                val credentialManager = CredentialManager.create(context)
 
-                        if (username == "admin" && password == "override") {
-                            onLoginSuccess()
-                        }
-                        else if(username == "user" && password == "goodpassword"){
-                            onLoginSuccess()
-                        } else{
-                            errorMessage = "Invalid username or password"
+                                val googleIdOption = GetGoogleIdOption.Builder()
+                                    .setFilterByAuthorizedAccounts(false)
+                                    .setServerClientId(context.getString(R.string.default_web_client_id))
+                                    .build()
+
+                                val request = GetCredentialRequest.Builder()
+                                    .addCredentialOption(googleIdOption)
+                                    .build()
+
+                                val result = credentialManager.getCredential(
+                                    context = context,
+                                    request = request
+                                )
+
+                                val credential = result.credential
+                                val googleIdTokenCredential = GoogleIdTokenCredential
+                                    .createFrom(credential.data)
+
+                                val idToken = googleIdTokenCredential.idToken
+
+                                val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
+
+                                FirebaseAuth.getInstance()
+                                    .signInWithCredential(firebaseCredential)
+                                    .addOnSuccessListener {
+                                        onGoogleSignInClick()
+                                    }
+                                    .addOnFailureListener { e ->
+                                        errorMessage = e.message ?: "Google sign-in failed"
+                                    }
+
+                            } catch (e: Exception) {
+                                Log.e("LoginScreen", "Google sign-in failed", e)
+                                errorMessage = e.message ?: "Google sign-in failed"
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Sign In")
+                    Text("Sign in with Google")
                 }
             }
         }

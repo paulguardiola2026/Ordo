@@ -40,3 +40,5 @@ node_modules/
 dist/
 *.mkv
 *.mp4
+
+google-services.json
