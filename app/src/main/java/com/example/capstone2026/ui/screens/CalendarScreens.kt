@@ -17,10 +17,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.capstone2026.data.CalendarEvent
 import com.example.capstone2026.util.*
-import com.example.capstone2026.ui.components.AddJsonEvent
+import com.example.capstone2026.ui.components.AddEventJson
 import com.example.capstone2026.ui.components.EditEventDialog
 import com.example.capstone2026.util.saveEventsToIcs
-import com.example.capstone2026.ui.components.AppMenu
 import com.example.capstone2026.ui.components.EventCard
 import com.example.capstone2026.ui.components.ScheduleModeSwitch
 import com.kizitonwose.calendar.compose.HorizontalCalendar
@@ -33,6 +32,8 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.platform.LocalContext
+import com.example.capstone2026.ui.components.CalendarFabMenu
+
 
 /**
  * Displays all events for a single selected day.
@@ -58,12 +59,15 @@ fun DailyScheduleScreen(
             .filter { event -> event.start.toLocalDate() == selectedDate }
             .sortedBy { it.start }
 
+        var showAddDialog by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 80.dp)) {
 
             ScheduleModeSwitch(
                 navController = navController,
@@ -129,15 +133,30 @@ fun DailyScheduleScreen(
             }
         }
         Box(
-            modifier = Modifier.align(Alignment.BottomStart)
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 88.dp, end = 16.dp)
         ) {
-            AddJsonEvent(allEvents)
+            CalendarFabMenu(
+                onAddEventClick = {
+                    showAddDialog = true
+                },
+                onUploadSyllabusClick = {
+                    navController.navigate("upload")
+                }
+            )
         }
 
-        Box(
-            modifier = Modifier.align(Alignment.BottomEnd)
-        ) {
-            AppMenu(navController)
+        if (showAddDialog) {
+            AddEventJson(
+                selectedDate = selectedDate,
+                onDismiss = { showAddDialog = false },
+                onSave = { eventJson, calendarEvents ->
+                    allEvents.addAll(calendarEvents)
+                    saveEventsToIcs(context, allEvents)
+                    showAddDialog = false
+                }
+            )
         }
     }
     editingEvent?.let { eventToEdit ->
@@ -168,6 +187,7 @@ fun WeeklyScheduleScreen(
     onFocusedDateChange: (LocalDate) -> Unit
 ) {
     val eventsByDate = allEvents.groupBy { it.start.toLocalDate() }
+    val context = LocalContext.current
 
     val today = focusedDate
 
@@ -181,6 +201,8 @@ fun WeeklyScheduleScreen(
         firstDayOfWeek = firstDayOfWeek
     )
 
+    var showAddDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(state.firstVisibleWeek.days.first().date) {
         onFocusedDateChange(state.firstVisibleWeek.days.first().date)
     }
@@ -190,7 +212,9 @@ fun WeeklyScheduleScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 80.dp)) {
 
             ScheduleModeSwitch(
                 navController = navController,
@@ -282,15 +306,29 @@ fun WeeklyScheduleScreen(
         }
 
         Box(
-            modifier = Modifier.align(Alignment.BottomStart)
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 88.dp, end = 16.dp)
         ) {
-            AddJsonEvent(allEvents)
+            CalendarFabMenu(
+                onAddEventClick = {
+                    showAddDialog = true
+                },
+                onUploadSyllabusClick = {
+                    navController.navigate("upload")
+                }
+            )
         }
-
-        Box(
-            modifier = Modifier.align(Alignment.BottomEnd)
-        ) {
-            AppMenu(navController)
+        if (showAddDialog) {
+            AddEventJson(
+                selectedDate = focusedDate,
+                onDismiss = { showAddDialog = false },
+                onSave = { eventJson, calendarEvents ->
+                    allEvents.addAll(calendarEvents)
+                    saveEventsToIcs(context, allEvents)
+                    showAddDialog = false
+                }
+            )
         }
     }
 }
@@ -307,6 +345,7 @@ fun MonthlyScheduleScreen(
     onFocusedDateChange: (LocalDate) -> Unit
 ) {
     val eventsByDate = allEvents.groupBy { it.start.toLocalDate() }
+    val context = LocalContext.current
 
     val currentMonth = remember(focusedDate) { YearMonth.from(focusedDate) }
     val startMonth = remember { currentMonth.minusYears(5) }
@@ -338,13 +377,16 @@ fun MonthlyScheduleScreen(
     )
 
     val yearOptions = (startMonth.year..endMonth.year).toList()
+    var showAddDialog by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 8.dp, vertical = 8.dp)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 80.dp)) {
 
             ScheduleModeSwitch(
                 navController = navController,
@@ -527,15 +569,29 @@ fun MonthlyScheduleScreen(
             }
         }
         Box(
-            modifier = Modifier.align(Alignment.BottomStart)
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 88.dp, end = 16.dp)
         ) {
-            AddJsonEvent(allEvents)
+            CalendarFabMenu(
+                onAddEventClick = {
+                    showAddDialog = true
+                },
+                onUploadSyllabusClick = {
+                    navController.navigate("upload")
+                }
+            )
         }
-
-        Box(
-            modifier = Modifier.align(Alignment.BottomEnd)
-        ) {
-            AppMenu(navController)
+        if (showAddDialog) {
+            AddEventJson(
+                selectedDate = focusedDate,
+                onDismiss = { showAddDialog = false },
+                onSave = { eventJson, calendarEvents ->
+                    allEvents.addAll(calendarEvents)
+                    saveEventsToIcs(context, allEvents)
+                    showAddDialog = false
+                }
+            )
         }
     }
 

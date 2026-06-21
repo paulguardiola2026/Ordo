@@ -21,6 +21,10 @@ import com.example.capstone2026.util.parseIcsFile
 import com.example.capstone2026.util.saveEventsToIcs
 import com.example.capstone2026.ui.screens.toCalendarEvent
 import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.padding
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.capstone2026.ui.components.BottomNavBar
 
 /**
  * Defines all navigation routes for the app and manages shared UI state.
@@ -57,20 +61,35 @@ fun AppNavGraph(
     var focusedDate by remember { mutableStateOf(LocalDate.now()) }
     var lastImportedEvents by remember { mutableStateOf<List<CalendarEvent>>(emptyList()) }
 
-    NavHost(
-        navController = navController,
-        startDestination = startDestination,
-        modifier = modifier
-    ) {
-        composable("login") {
-            LoginScreen(
-                onGoogleSignInClick = {
-                    navController.navigate("home") {
-                        popUpTo("login") {inclusive = true}
-                    }
-                }
-            )
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route ?: startDestination
+    val showBottomBar = currentRoute != "login"
+
+    Scaffold(
+        bottomBar = {
+            if (showBottomBar) {
+                BottomNavBar(
+                    navController = navController,
+                    currentRoute = currentRoute
+                )
+            }
         }
+    ) { innerPadding ->
+
+        NavHost(
+            navController = navController,
+            startDestination = startDestination,
+            modifier = modifier.padding(innerPadding)
+        ) {
+            composable("login") {
+                LoginScreen(
+                    onGoogleSignInClick = {
+                        navController.navigate("home") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    }
+                )
+            }
 
         composable("home") {
             HomeScreen(
@@ -179,4 +198,4 @@ fun AppNavGraph(
             )
         }
     }
-}
+}}

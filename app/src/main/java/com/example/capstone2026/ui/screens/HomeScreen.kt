@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -15,14 +14,14 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.capstone2026.R
 import com.example.capstone2026.data.CalendarEvent
-import com.example.capstone2026.ui.components.AddJsonEvent
-import com.example.capstone2026.ui.components.AppMenu
 import com.example.capstone2026.util.cleanedEventTitle
 import com.example.capstone2026.util.formatEventDate
 import com.example.capstone2026.util.toLocalDate
 import com.google.firebase.auth.FirebaseAuth
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.LocalTime
+import com.example.capstone2026.ui.components.QuickStatCard
 
 /**
  * Main dashboard screen.
@@ -42,6 +41,12 @@ fun HomeScreen(
     val formattedDate = today.format(
         DateTimeFormatter.ofPattern("EEEE, MMMM d")
     )
+    val currentHour = LocalTime.now().hour
+    val greeting = when {
+        currentHour < 12 -> "Good morning"
+        currentHour < 17 -> "Good afternoon"
+        else -> "Good evening"
+    }
 
 
     val upcomingEvents = allEvents
@@ -49,32 +54,136 @@ fun HomeScreen(
         .sortedBy { it.start }
         .take(3)
 
+    val eventsToday = allEvents.count {
+        it.start.toLocalDate() == today
+    }
+
+    val assignmentsUpcoming = allEvents.count {
+        it.start.toLocalDate() >= today && it.eventType?.lowercase()?.contains("assignment") == true
+    }
+
+    val examsThisWeek = allEvents.count {
+        val eventDate = it.start.toLocalDate()
+        eventDate >= today &&
+                eventDate <= today.plusDays(7) &&
+                it.eventType?.lowercase()?.contains("exam") == true
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 80.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = "App Logo",
                 modifier = Modifier
-                .height(80.dp)
+                .height(56.dp)
             )
-            Text(
-                text = "Welcome, ${user?.displayName ?: "Student"}"
-            )
-            Text(
-                text = formattedDate,
-                style = MaterialTheme.typography.bodyLarge
-            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "$greeting, ${user?.displayName ?: "Student"}",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = formattedDate,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement =  Arrangement.spacedBy(8.dp)
+            ) {
+                QuickStatCard(
+                    label = "Today",
+                    value = eventsToday.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+                QuickStatCard(
+                    label = "Assignments",
+                    value = assignmentsUpcoming.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+                QuickStatCard(
+                    label = "Exams",
+                    value = examsThisWeek.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            val nextDeadline = allEvents
+                .filter { event ->
+                    val type = event.eventType?.lowercase().orEmpty()
+                    event.start.toLocalDate() >= today &&
+                            (type.contains("assignment") ||
+                                    type.contains("exam") ||
+                                    type.contains("project") ||
+                                    event.title.lowercase().contains("due"))
+                }
+                .sortedBy { it.start }
+                .firstOrNull()
+
+            nextDeadline?.let { event ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            val eventDate = event.start.toLocalDate()
+                            navController.navigate("schedule_daily/$eventDate")
+                        },
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Next Deadline",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+
+                        Text(
+                            text = cleanedEventTitle(event.title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+
+                        event.courseTitle?.let {
+                            Text(
+                                text = it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+
+                        Text(
+                            text = formatEventDate(event),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            }
 
             Text(
-                text = "Upcoming",
-                style = MaterialTheme.typography.titleMedium
+                text = "Today's Agenda",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
             )
 
             if (upcomingEvents.isEmpty()) {
@@ -109,55 +218,6 @@ fun HomeScreen(
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Navigation buttons
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)){
-                Button(
-                    onClick = onNavigateToUpload,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Upload Syllabus")
-                }
-            }
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Button(
-                    onClick = onNavigateToDaily,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Daily")
-                }
-
-                Button(
-                    onClick = onNavigateToWeekly,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Weekly")
-                }
-
-                Button(
-                    onClick = onNavigateToMonthly,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Monthly")
-                }
-            }
-        }
-        Box(
-            modifier = Modifier.align(Alignment.BottomStart)
-        ) {
-            AddJsonEvent(allEvents)
-        }
-
-        Box(
-            modifier = Modifier.align(Alignment.BottomEnd)
-        ) {
-            AppMenu(navController)
         }
     }
 }

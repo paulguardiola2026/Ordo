@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.capstone2026.ui.components.AppMenu
+import com.example.capstone2026.ui.components.BottomNavBar
 import com.example.capstone2026.ui.theme.ThemeMode
 import com.google.firebase.auth.FirebaseAuth
 
@@ -87,10 +88,6 @@ fun SettingsScreen(
             ) {
                 Text("Sign Out")
             }
-        }
-
-        Box(modifier = Modifier.align(Alignment.BottomEnd)) {
-            AppMenu(navController)
         }
     }
 }
